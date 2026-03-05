@@ -4,111 +4,71 @@
   <meta charset="UTF-8">
   <title>TikTok Follower Count</title>
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      text-align: center;
-      margin-top: 80px;
-      background: #f9f9f9;
-    }
-
-    h1 {
-      margin-bottom: 20px;
-    }
-
-    #count {
-      font-size: 5em;
-      color: #FF0050;
-      margin: 20px 0;
-      transition: opacity 0.3s ease;
-    }
-
-    #count.loading {
-      opacity: 0.5;
-    }
-
-    #countdown {
-      margin-top: 15px;
-      font-size: 1.2em;
-      color: #666;
-    }
-
-    .progress-container {
-      width: 300px;
-      height: 10px;
-      background: #ddd;
-      margin: 20px auto;
-      border-radius: 10px;
-      overflow: hidden;
-    }
-
-    .progress-bar {
-      height: 100%;
-      width: 100%;
-      background: #FF0050;
-      transition: width 1s linear;
-    }
+    body { font-family: Arial; text-align: center; margin-top: 80px; background: #f9f9f9; }
+    h1 { margin-bottom: 20px; }
+    #count { font-size: 5em; color: #FF0050; margin: 20px 0; transition: opacity 0.3s ease; }
+    #count.loading { opacity: 0.5; }
+    #countdown { margin-top: 15px; font-size: 1.2em; color: #666; }
+    .progress-container { width: 300px; height: 10px; background: #ddd; margin: 20px auto; border-radius: 10px; overflow: hidden; }
+    .progress-bar { height: 100%; width: 100%; background: #FF0050; transition: width 1s linear; }
   </style>
-
   <script defer>
-document.addEventListener("DOMContentLoaded", () => {
-  const workerURL = "https://tiktok-follower-api.sillybillyshowemail.workers.dev";
-  const countEl = document.getElementById("count");
-  const countdownEl = document.getElementById("countdown");
-  const progressBar = document.getElementById("progress-bar");
+    document.addEventListener("DOMContentLoaded", () => {
+      const workerURL = "https://tiktok-follower-api.sillybillyshowemail.workers.dev";
+      const countEl = document.getElementById("count");
+      const countdownEl = document.getElementById("countdown");
+      const progressBar = document.getElementById("progress-bar");
 
-  async function fetchFollowerCount() {
-  countEl.classList.add("loading");
-  try {
-    // Force browser to fetch fresh data from Worker
-    const res = await fetch(workerURL, { cache: "no-store" });
-    const data = await res.json();
-    if (data.followers !== undefined) {
-      countEl.textContent = data.followers.toLocaleString();
-    } else {
-      countEl.textContent = "Error";
-    }
-  } catch (err) {
-    console.error(err);
-    countEl.textContent = "Error";
-  }
-  countEl.classList.remove("loading");
-}
+      async function fetchFollowerCount() {
+        countEl.classList.add("loading");
+        try {
+          // Force fresh fetch from Worker
+          const res = await fetch(workerURL, { cache: "no-store" });
+          const data = await res.json();
+          if (data.followers !== undefined) {
+            countEl.textContent = data.followers.toLocaleString();
+          } else {
+            countEl.textContent = "Error";
+          }
+        } catch (err) {
+          console.error(err);
+          countEl.textContent = "Error";
+        }
+        countEl.classList.remove("loading");
+      }
 
-  // initial load
-  fetchFollowerCount();
-
-  // countdown + progress
-  let lastMinute = null;
-
-  function updateCountdown() {
-    const now = new Date();
-    const seconds = now.getUTCSeconds();
-    const minutes = now.getUTCMinutes();
-
-    const remaining = 60 - seconds;
-    countdownEl.textContent = `Refreshing in ${remaining}s`;
-
-    progressBar.style.width = (remaining / 60) * 100 + "%";
-
-    if (minutes !== lastMinute) {
-      lastMinute = minutes;
+      // Initial load
       fetchFollowerCount();
-    }
-  }
 
-  setInterval(updateCountdown, 1000);
-  updateCountdown();
-});
-</script>
+      let lastMinute = null;
+
+      function updateCountdown() {
+        const now = new Date();
+        const seconds = now.getUTCSeconds();
+        const minutes = now.getUTCMinutes();
+
+        const remaining = 60 - seconds;
+        countdownEl.textContent = `Refreshing in ${remaining}s`;
+        progressBar.style.width = (remaining / 60) * 100 + "%";
+
+        // Fetch new follower count exactly at GMT minute
+        if (minutes !== lastMinute) {
+          lastMinute = minutes;
+          fetchFollowerCount();
+        }
+      }
+
+      setInterval(updateCountdown, 1000);
+      updateCountdown();
+    });
+  </script>
 </head>
 <body>
   <h1>My TikTok Follower Count</h1>
   <div id="count">Loading...</div>
-
   <div class="progress-container">
     <div class="progress-bar" id="progress-bar"></div>
   </div>
-
   <div id="countdown">Refreshing in 60s</div>
 </body>
 </html>
