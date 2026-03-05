@@ -57,21 +57,22 @@ document.addEventListener("DOMContentLoaded", () => {
   const progressBar = document.getElementById("progress-bar");
 
   async function fetchFollowerCount() {
-    countEl.classList.add("loading");
-    try {
-      const res = await fetch(workerURL);
-      const data = await res.json();
-      if (data.followers !== undefined) {
-        countEl.textContent = data.followers.toLocaleString();
-      } else {
-        countEl.textContent = "Error";
-      }
-    } catch (err) {
-      console.error(err);
+  countEl.classList.add("loading");
+  try {
+    // Force browser to fetch fresh data from Worker
+    const res = await fetch(workerURL, { cache: "no-store" });
+    const data = await res.json();
+    if (data.followers !== undefined) {
+      countEl.textContent = data.followers.toLocaleString();
+    } else {
       countEl.textContent = "Error";
     }
-    countEl.classList.remove("loading");
+  } catch (err) {
+    console.error(err);
+    countEl.textContent = "Error";
   }
+  countEl.classList.remove("loading");
+}
 
   // initial load
   fetchFollowerCount();
