@@ -50,53 +50,55 @@
   </style>
 
   <script defer>
-    document.addEventListener("DOMContentLoaded", () => {
-      const workerURL = "https://tiktok-follower-api.sillybillyshowemail.workers.dev";
-      const countEl = document.getElementById("count");
-      const countdownEl = document.getElementById("countdown");
-      const progressBar = document.getElementById("progress-bar");
+document.addEventListener("DOMContentLoaded", () => {
+  const workerURL = "https://tiktok-follower-api.sillybillyshowemail.workers.dev";
+  const countEl = document.getElementById("count");
+  const countdownEl = document.getElementById("countdown");
+  const progressBar = document.getElementById("progress-bar");
 
-      const REFRESH_INTERVAL = 60; // 60 seconds per GMT minute
-
-      async function fetchFollowerCount() {
-        countEl.classList.add("loading");
-        try {
-          const res = await fetch(workerURL);
-          const data = await res.json();
-          if (data.followers !== undefined) {
-            countEl.textContent = data.followers.toLocaleString();
-          } else {
-            countEl.textContent = "Error";
-          }
-        } catch (err) {
-          console.error(err);
-          countEl.textContent = "Error";
-        }
-        countEl.classList.remove("loading");
+  async function fetchFollowerCount() {
+    countEl.classList.add("loading");
+    try {
+      const res = await fetch(workerURL);
+      const data = await res.json();
+      if (data.followers !== undefined) {
+        countEl.textContent = data.followers.toLocaleString();
+      } else {
+        countEl.textContent = "Error";
       }
+    } catch (err) {
+      console.error(err);
+      countEl.textContent = "Error";
+    }
+    countEl.classList.remove("loading");
+  }
 
-      // Initial load
+  // initial load
+  fetchFollowerCount();
+
+  // countdown + progress
+  let lastMinute = null;
+
+  function updateCountdown() {
+    const now = new Date();
+    const seconds = now.getUTCSeconds();
+    const minutes = now.getUTCMinutes();
+
+    const remaining = 60 - seconds;
+    countdownEl.textContent = `Refreshing in ${remaining}s`;
+
+    progressBar.style.width = (remaining / 60) * 100 + "%";
+
+    if (minutes !== lastMinute) {
+      lastMinute = minutes;
       fetchFollowerCount();
+    }
+  }
 
-      // Countdown + progress
-      function updateCountdown() {
-        const now = new Date();
-        const seconds = now.getUTCSeconds();
-        const remaining = 60 - seconds;
-
-        countdownEl.textContent = `Refreshing in ${remaining}s`;
-        progressBar.style.width = (remaining / REFRESH_INTERVAL) * 100 + "%";
-
-        // Fetch new follower count exactly at the GMT minute
-        if (seconds === 0) {
-          fetchFollowerCount();
-        }
-      }
-
-      setInterval(updateCountdown, 1000);
-      updateCountdown(); // run immediately
-    });
-  </script>
+  setInterval(updateCountdown, 1000);
+  updateCountdown();
+});
+</script>
 </head>
 <body>
   <h1>My TikTok Follower Count</h1>
