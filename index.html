@@ -1,0 +1,705 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Silly Billy Show Takeover</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <!-- Three.js r128 — used by globe.js for WebGL rendering -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --red:        #ff0050;
+      --red-glow:   rgba(255,0,80,0.18);
+      --green:      #00e676;
+      --green-glow: rgba(0,230,118,0.3);
+      --bg:         #0d0d0d;
+      --surface:    #161616;
+      --surface2:   #1e1e1e;
+      --border:     rgba(255,255,255,0.07);
+      --text:       #f0f0f0;
+      --muted:      #888;
+      --font-display: 'Bebas Neue', sans-serif;
+      --font-body:    'DM Sans', sans-serif;
+      --radius:     12px;
+      --row-height: 44px;
+    }
+
+    html, body { height: 100%; }
+
+    body {
+      font-family: var(--font-body);
+      background: var(--bg);
+      color: var(--text);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 24px 16px 40px;
+      min-height: 100vh;
+      background-image: radial-gradient(ellipse 80% 40% at 50% -10%, rgba(255,0,80,0.10) 0%, transparent 70%);
+    }
+
+    .page {
+      width: 100%;
+      max-width: 800px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .header { text-align: center; padding-top: 8px; }
+
+    .header h1 {
+      font-family: var(--font-display);
+      font-size: clamp(2.4rem, 7vw, 4rem);
+      letter-spacing: 0.04em;
+      color: var(--text);
+      line-height: 1;
+    }
+
+    .header h1 span { color: var(--red); }
+
+    .header-follow {
+      width: min(100%, 560px);
+      margin: 14px auto 0;
+      display: grid;
+      grid-template-columns: 64px 1fr;
+      gap: 14px;
+      align-items: center;
+      padding: 12px 14px;
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.015));
+      color: var(--muted);
+      text-decoration: none;
+      text-align: left;
+      transition: border-color 0.15s, transform 0.15s, background 0.15s;
+    }
+
+    .header-follow:hover {
+      border-color: rgba(255,0,80,0.35);
+      background: linear-gradient(180deg, rgba(255,0,80,0.08), rgba(255,255,255,0.02));
+      transform: translateY(-1px);
+    }
+
+    .header-follow-avatar {
+      width: 64px;
+      height: 64px;
+      border-radius: 50%;
+      object-fit: cover;
+      display: block;
+      background: var(--surface2);
+      border: 2px solid rgba(255,255,255,0.08);
+    }
+
+    .header-follow-text {
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+
+    .header-follow-kicker {
+      font-size: 0.72rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .header-follow-handle {
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--text);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .header-follow-copy {
+      font-size: 0.88rem;
+      line-height: 1.35;
+      color: var(--muted);
+    }
+
+    .timer-block { display: flex; flex-direction: column; gap: 8px; }
+
+    .timer-label {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.8rem;
+      color: var(--muted);
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+
+    .bar-track {
+      width: 100%;
+      height: 3px;
+      background: var(--surface2);
+      border-radius: 999px;
+      overflow: hidden;
+    }
+
+    #bar {
+      height: 100%;
+      width: 0%;
+      background: var(--red);
+      border-radius: 999px;
+      transition: width 0.25s linear;
+      box-shadow: 0 0 8px var(--red);
+    }
+
+    .globe-wrap {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      position: relative;
+    }
+
+    #globe-container {
+      width: 100%;
+      height: 420px;
+      cursor: grab;
+      display: block;
+      touch-action: none;
+    }
+
+    #globe-container:active { cursor: grabbing; }
+
+    .globe-legend {
+      position: absolute;
+      bottom: 14px;
+      left: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      pointer-events: none;
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.75rem;
+      color: var(--muted);
+    }
+
+    .legend-dot {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .legend-dot--overtaken { background: var(--green); box-shadow: 0 0 5px var(--green-glow); }
+    .legend-dot--next      { background: #fff; }
+    .legend-dot--future    { background: #2a2a2a; border: 1px solid #444; }
+
+    .globe-hints {
+      position: absolute;
+      top: 12px;
+      right: 14px;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 3px;
+      pointer-events: none;
+    }
+
+    .globe-hint {
+      font-size: 0.7rem;
+      color: var(--muted);
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+
+    .summary {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 12px;
+    }
+
+    .panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      min-width: 0;
+    }
+
+    .panel--center {
+      background: var(--red);
+      border-color: var(--red);
+      box-shadow: 0 0 32px var(--red-glow), 0 4px 20px rgba(0,0,0,0.4);
+    }
+
+    .panel-label {
+      font-size: 0.72rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+      font-weight: 500;
+    }
+
+    .panel--center .panel-label { color: rgba(255,255,255,0.7); }
+
+    .panel-name {
+      font-size: 0.9rem;
+      font-weight: 600;
+      line-height: 1.3;
+      color: var(--text);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .panel--center .panel-name { color: #fff; }
+
+    .panel-value {
+      font-family: var(--font-display);
+      font-size: 1.5rem;
+      letter-spacing: 0.02em;
+      color: var(--red);
+      line-height: 1;
+    }
+
+    .panel--center .panel-value { color: #fff; font-size: 2rem; }
+
+    .search-panel { position: relative; }
+    .search-row   { display: flex; gap: 8px; }
+
+    #location-search {
+      flex: 1;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 12px 16px;
+      font-family: var(--font-body);
+      font-size: 0.95rem;
+      color: var(--text);
+      outline: none;
+      transition: border-color 0.15s;
+      min-width: 0;
+    }
+
+    #location-search::placeholder { color: var(--muted); }
+    #location-search:focus {
+      border-color: var(--red);
+      box-shadow: 0 0 0 3px var(--red-glow);
+    }
+
+    .btn {
+      border: none;
+      border-radius: var(--radius);
+      padding: 0 18px;
+      font-family: var(--font-body);
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: opacity 0.15s, transform 0.1s;
+    }
+
+    .btn:active { transform: scale(0.97); }
+    .btn--primary { background: var(--red); color: #fff; }
+    .btn--primary:hover { opacity: 0.88; }
+    .btn--ghost { background: var(--surface2); color: var(--muted); border: 1px solid var(--border); }
+    .btn--ghost:hover { color: var(--text); }
+
+    #search-results {
+      position: absolute;
+      top: calc(100% + 6px);
+      left: 0; right: 0;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      z-index: 20;
+      box-shadow: 0 16px 40px rgba(0,0,0,0.5);
+    }
+
+    .search-result {
+      display: block;
+      width: 100%;
+      padding: 11px 16px;
+      background: none;
+      border: none;
+      color: var(--text);
+      font-family: var(--font-body);
+      font-size: 0.9rem;
+      line-height: 1.35;
+      text-align: left;
+      cursor: pointer;
+      transition: background 0.1s;
+    }
+
+    .search-result:hover { background: var(--surface2); color: var(--red); }
+
+    .table-wrap,
+    .country-wrap {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+
+    .table-header,
+    .country-table-header {
+      display: grid;
+      grid-template-columns: 56px 1fr auto;
+      gap: 12px;
+      padding: 10px 18px;
+      font-size: 0.72rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+      border-bottom: 1px solid var(--border);
+      font-weight: 500;
+    }
+
+    .country-table-header {
+      grid-template-columns: 1fr auto;
+    }
+
+    .country-table-header span:last-child {
+      text-align: right;
+    }
+
+    #table-body {
+      position: relative;
+      height: 440px;
+      overflow-y: auto;
+      scrollbar-width: thin;
+      scrollbar-color: var(--surface2) transparent;
+    }
+
+    #table-body::-webkit-scrollbar,
+    .country-table-scroll::-webkit-scrollbar { width: 4px; }
+
+    #table-body::-webkit-scrollbar-thumb,
+    .country-table-scroll::-webkit-scrollbar-thumb { background: var(--surface2); border-radius: 4px; }
+
+    #table-spacer {
+      position: absolute;
+      top: 0; left: 0;
+      width: 1px;
+      pointer-events: none;
+    }
+
+    .row {
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: var(--row-height);
+      display: grid;
+      grid-template-columns: 56px 1fr auto;
+      gap: 12px;
+      align-items: center;
+      padding: 0 18px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .row:hover { background: var(--surface2); }
+
+    .row--follower {
+      background: var(--red) !important;
+      z-index: 1;
+      box-shadow: 0 0 24px var(--red-glow);
+    }
+
+    .row--follower .row-rank,
+    .row--follower .row-name,
+    .row--follower .row-value {
+      color: #fff !important;
+      font-weight: 700;
+    }
+
+    .row--focused {
+      outline: 1px solid rgba(255,0,80,0.4);
+      background: rgba(255,0,80,0.05);
+    }
+
+    .row-rank {
+      font-size: 0.8rem;
+      color: var(--muted);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .row-name {
+      font-size: 0.88rem;
+      color: var(--text);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .row-value {
+      font-size: 0.88rem;
+      font-variant-numeric: tabular-nums;
+      color: var(--muted);
+      white-space: nowrap;
+      text-align: right;
+    }
+
+    .country-section-header {
+      padding: 18px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .country-title {
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--text);
+      margin-right: auto;
+    }
+
+    .country-tabs {
+      display: inline-flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .country-tab {
+      border: 1px solid var(--border);
+      background: var(--surface2);
+      color: var(--muted);
+      border-radius: 999px;
+      padding: 10px 14px;
+      font: inherit;
+      font-size: 0.82rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s, color 0.15s, border-color 0.15s;
+    }
+
+    .country-tab.is-active {
+      background: rgba(255,0,80,0.12);
+      color: var(--text);
+      border-color: rgba(255,0,80,0.4);
+    }
+
+    .country-table-meta {
+      padding: 14px 18px 0;
+      font-size: 0.78rem;
+      color: var(--muted);
+    }
+
+    .country-table-scroll {
+      max-height: 420px;
+      overflow-y: auto;
+      scrollbar-width: thin;
+      scrollbar-color: var(--surface2) transparent;
+    }
+
+    .country-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    .country-table td {
+      padding: 12px 18px;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.88rem;
+      color: var(--text);
+      vertical-align: middle;
+    }
+
+    .country-table td:first-child {
+      width: auto;
+      color: var(--text);
+      font-variant-numeric: normal;
+    }
+
+    .country-table td:last-child {
+      text-align: right;
+      white-space: nowrap;
+      color: var(--muted);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .country-empty {
+      padding: 18px;
+      font-size: 0.88rem;
+      color: var(--muted);
+    }
+
+    .page-footer {
+      text-align: center;
+      font-size: 0.78rem;
+      color: var(--muted);
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .page-footer a { color: var(--muted); text-decoration: underline; }
+    .page-footer a:hover { color: var(--text); }
+
+    @media (max-width: 560px) {
+      .summary { grid-template-columns: 1fr; }
+      .panel--center { order: -1; }
+      .search-row { flex-wrap: wrap; }
+      .btn { height: 44px; }
+      #globe-container { height: 300px; }
+      #table-body { height: 360px; }
+      .country-section-header { align-items: flex-start; flex-direction: column; }
+      .country-title { margin-right: 0; }
+      .header-sub {
+        font-size: 0.77rem;
+        line-height: 1.25;
+      }
+      .header-follow {
+        grid-template-columns: 52px 1fr;
+        gap: 12px;
+        padding: 12px;
+      }
+      .header-follow-avatar {
+        width: 52px;
+        height: 52px;
+      }
+      .header-follow-handle {
+        font-size: 0.95rem;
+      }
+      .header-follow-copy {
+        font-size: 0.82rem;
+      }
+      .panel-name {
+        white-space: normal;
+        overflow: visible;
+        text-overflow: clip;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+
+    <header class="header">
+      <h1>Silly Billy Show <span>Takeover</span></h1>
+      <a class="header-follow" href="https://www.tiktok.com/@sillybillyshow" target="_blank" rel="noreferrer">
+        <img class="header-follow-avatar" src="profilepicture.png" alt="Silly Billy Show profile picture">
+        <span class="header-follow-text">
+          <span class="header-follow-kicker">Follow on TikTok</span>
+          <span class="header-follow-handle">@sillybillyshow</span>
+          <span class="header-follow-copy">Help us take over the world</span>
+        </span>
+      </a>
+      <p class="header-sub">Follower count updates may take over a minute to pull through</p>
+    </header>
+
+    <div class="timer-block">
+      <div class="timer-label">
+        <span>Live update</span>
+        <span id="countdown">Loading...</span>
+      </div>
+      <div class="bar-track">
+        <div id="bar"></div>
+      </div>
+    </div>
+
+    <div class="globe-wrap">
+      <div id="globe-container"></div>
+
+      <div class="globe-hints">
+        <span class="globe-hint">Drag to rotate</span>
+        <span class="globe-hint">Scroll / pinch to zoom</span>
+      </div>
+
+      <div class="globe-legend">
+        <div class="legend-item">
+          <div class="legend-dot legend-dot--overtaken"></div>
+          <span>Overtaken</span>
+        </div>
+        <div class="legend-item">
+          <div class="legend-dot legend-dot--next"></div>
+          <span>Next target</span>
+        </div>
+        <div class="legend-item">
+          <div class="legend-dot legend-dot--future"></div>
+          <span>Not yet reached</span>
+        </div>
+      </div>
+    </div>
+
+    <section class="summary">
+      <div class="panel">
+        <span class="panel-label">Just overtaken</span>
+        <span class="panel-name" id="panel-last-name">—</span>
+        <span class="panel-value" id="panel-last-pop">—</span>
+      </div>
+      <div class="panel panel--center">
+        <span class="panel-label">Silly Billy Show</span>
+        <span class="panel-name">TikTok Followers</span>
+        <span class="panel-value" id="panel-followers">—</span>
+      </div>
+      <div class="panel">
+        <span class="panel-label">Next to overtake</span>
+        <span class="panel-name" id="panel-next-name">—</span>
+        <span class="panel-value" id="panel-next-pop">—</span>
+      </div>
+    </section>
+
+    <div class="search-panel">
+      <div class="search-row">
+        <input id="location-search" type="text" placeholder="Search for a city…" autocomplete="off">
+        <button id="search-button" class="btn btn--primary" type="button">Search</button>
+        <button id="reset-button" class="btn btn--ghost" type="button">Reset</button>
+      </div>
+      <div id="search-results" hidden></div>
+    </div>
+
+    <div class="table-wrap">
+      <div class="table-header">
+        <span>#</span>
+        <span>Place</span>
+        <span>Population</span>
+      </div>
+      <div id="table-body">
+        <div id="table-spacer"></div>
+      </div>
+    </div>
+
+    <section class="country-wrap">
+      <div class="country-section-header">
+        <div class="country-title">Country Takeover</div>
+        <div class="country-tabs" role="tablist" aria-label="Country takeover tabs">
+          <button class="country-tab is-active" id="country-tab-overtaken" data-tab="overtaken" type="button" role="tab" aria-selected="true">Overtaken</button>
+          <button class="country-tab" id="country-tab-future" data-tab="future" type="button" role="tab" aria-selected="false">Yet to Overtake</button>
+        </div>
+      </div>
+      <div class="country-table-meta" id="country-table-title">Loading country totals…</div>
+      <div class="country-table-header">
+        <span>Country</span>
+        <span>Population</span>
+      </div>
+      <div class="country-table-scroll">
+        <table class="country-table">
+          <tbody id="country-table-body"></tbody>
+        </table>
+      </div>
+      <div class="country-empty" id="country-empty" hidden>No countries available for this view yet.</div>
+    </section>
+
+    <footer class="page-footer">
+      <div>City data source: <a href="https://simplemaps.com/data/world-cities" target="_blank" rel="noreferrer">Simplemaps World Cities Database</a></div>
+      <div>Country data source: <a href="https://restcountries.com/" target="_blank" rel="noreferrer">REST Countries</a></div>
+    </footer>
+
+  </div>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>
