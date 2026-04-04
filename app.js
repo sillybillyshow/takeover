@@ -1,19 +1,8 @@
-// The raw URL for the public GitHub Gist that the Cloudflare Worker writes the follower count to
 const GIST_URL = "https://gist.githubusercontent.com/sillybillyshow/ae68c331d964ff293623a01ca1766256/raw/tiktok_stats.json";
-
-// Official World Bank total population indicator used for the country table
 const COUNTRY_POP_URL = "countrypopulations.json";
-
-// The localStorage key used to persist the last known follower count across page loads
 const FOLLOWER_CACHE_KEY = "sbs-followers-cache";
-
-// The fixed pixel height of each row in the virtual scroll table — must match --row-height in CSS
 const ROW_HEIGHT = 44;
-
-// The number of rows to render above and below the visible viewport as a scroll buffer
 const BUFFER = 10;
-
-// ── State ─────────────────────────────────────────────────────────────────────
 
 let populationData = [];
 let countryData = [];
@@ -24,11 +13,7 @@ let hasLoaded = false;
 let flatList = [];
 let followerIndex = 0;
 let activeCountryTab = "overtaken";
-
-// Handle returned by initGlobe — exposes update(followers) and destroy()
 let globeHandle = null;
-
-// ── DOM references ────────────────────────────────────────────────────────────
 
 const countdownEl = document.getElementById("countdown");
 const barEl = document.getElementById("bar");
@@ -48,8 +33,6 @@ const countryTableTitle = document.getElementById("country-table-title");
 const countryTableBody = document.getElementById("country-table-body");
 const countryEmpty = document.getElementById("country-empty");
 const countryTabs = [...document.querySelectorAll(".country-tab")];
-
-// ── Data loading ──────────────────────────────────────────────────────────────
 
 async function loadData() {
   const res = await fetch("populationdata.json");
@@ -98,8 +81,6 @@ async function loadData() {
   startClock();
 }
 
-// ── Cache ─────────────────────────────────────────────────────────────────────
-
 function readCache() {
   try {
     const raw = localStorage.getItem(FOLLOWER_CACHE_KEY);
@@ -116,8 +97,6 @@ function writeCache(v) {
     localStorage.setItem(FOLLOWER_CACHE_KEY, JSON.stringify({ followers: v }));
   } catch {}
 }
-
-// ── Followers ─────────────────────────────────────────────────────────────────
 
 async function fetchFollowers() {
   try {
@@ -141,8 +120,6 @@ async function fetchFollowers() {
   }
 }
 
-// ── Countries ─────────────────────────────────────────────────────────────────
-
 async function fetchCountryData() {
   try {
     const res = await fetch(COUNTRY_POP_URL);
@@ -163,8 +140,6 @@ async function fetchCountryData() {
     if (countryEmpty) countryEmpty.hidden = false;
   }
 }
-
-// ── Clock ─────────────────────────────────────────────────────────────────────
 
 function msUntilNextFetch() {
   const now = new Date();
@@ -191,10 +166,9 @@ function startClock() {
       scheduleFetch();
     }, msUntilNextFetch());
   }
+
   scheduleFetch();
 }
-
-// ── Flat list builder ─────────────────────────────────────────────────────────
 
 function buildFlatList() {
   const insertAt = findRank(followers);
@@ -211,8 +185,6 @@ function buildFlatList() {
 
   spacer.style.height = `${flatList.length * ROW_HEIGHT}px`;
 }
-
-// ── Virtual scroll renderer ───────────────────────────────────────────────────
 
 let lastStart = -1;
 let lastEnd = -1;
@@ -269,10 +241,9 @@ function makeRow(index, entry) {
       <span class="row-name">${label}</span>
       <span class="row-value">${fmt(entry.city.population)}</span>`;
   }
+
   return el;
 }
-
-// ── Scroll helpers ────────────────────────────────────────────────────────────
 
 function scrollToFollower(behavior = "smooth") {
   const top = followerIndex * ROW_HEIGHT - scroller.clientHeight / 2 + ROW_HEIGHT / 2;
@@ -287,8 +258,6 @@ function scrollToCity(id) {
   scroller.scrollTo({ top: Math.max(0, top), behavior: "smooth" });
   requestAnimationFrame(renderVirtualTable);
 }
-
-// ── Panels ────────────────────────────────────────────────────────────────────
 
 function renderPanels() {
   const insertAt = findRank(followers);
@@ -308,8 +277,6 @@ function refreshFollowerViews() {
   renderCountryTable();
   if (globeHandle) globeHandle.update(followers);
 }
-
-// ── Country table ─────────────────────────────────────────────────────────────
 
 function setupCountryTabs() {
   countryTabs.forEach(tab => {
@@ -345,7 +312,7 @@ function renderCountryTable() {
   countryTableBody.innerHTML = "";
   countryEmpty.hidden = rows.length > 0;
 
-  rows.forEach((entry, index) => {
+  rows.forEach(entry => {
     const tr = document.createElement("tr");
     tr.innerHTML = `
       <td>${entry.country}</td>
@@ -354,18 +321,22 @@ function renderCountryTable() {
   });
 }
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
-
 function cityKey(city) { return `${city.city}, ${city.country}`; }
+
 function cityContext(city) {
   const context = typeof city.context === "string" ? city.context.trim() : "";
   return context || "";
 }
+
 function cityLabel(city) {
   const context = cityContext(city);
   return context ? `${city.city} (${context}), ${city.country}` : cityKey(city);
 }
-function cityId(city) { return `${city.city}|${city.country}|${city.population}|${city.lat}|${city.lng}`; }
+
+function cityId(city) {
+  return `${city.city}|${city.country}|${city.population}|${city.lat}|${city.lng}`;
+}
+
 function fmt(n) { return Number(n).toLocaleString(); }
 
 function findRank(value) {
@@ -377,8 +348,6 @@ function findRank(value) {
   }
   return lo;
 }
-
-// ── Search ────────────────────────────────────────────────────────────────────
 
 function setupSearch() {
   scroller.addEventListener("scroll", () => requestAnimationFrame(renderVirtualTable), { passive: true });
@@ -411,7 +380,12 @@ function doSearch() {
     clearResults();
     return;
   }
-  renderResults(searchableLocations.filter(e => e.labelLower.includes(q) || e.keyLower.includes(q)).slice(0, 8));
+
+  renderResults(
+    searchableLocations
+      .filter(e => e.labelLower.includes(q) || e.keyLower.includes(q))
+      .slice(0, 8)
+  );
 }
 
 function renderResults(matches) {
@@ -420,6 +394,7 @@ function renderResults(matches) {
     searchResults.hidden = true;
     return;
   }
+
   matches.forEach(entry => {
     const btn = document.createElement("button");
     btn.type = "button";
@@ -434,6 +409,7 @@ function renderResults(matches) {
     });
     searchResults.appendChild(btn);
   });
+
   searchResults.hidden = false;
 }
 
