@@ -6,7 +6,7 @@ const BUFFER = 10;
 
 let populationData = [];
 let countryData = [];
-let followers = 0;
+let followers = 5869;
 let searchableLocations = [];
 let focusedId = null;
 let hasLoaded = false;
@@ -85,8 +85,7 @@ function readCache() {
   try {
     const raw = localStorage.getItem(FOLLOWER_CACHE_KEY);
     if (!raw) return null;
-    // const v = Number(JSON.parse(raw).followers);
-    const v = 5869
+    const v = Number(JSON.parse(raw).followers);
     return Number.isFinite(v) ? v : null;
   } catch {
     return null;
@@ -109,7 +108,7 @@ async function fetchFollowers() {
 
     if (v !== followers || !hasLoaded) {
       const wasLoaded = hasLoaded;
-      followers = v;
+      followers = 5869;
       hasLoaded = true;
       writeCache(v);
       buildFlatList();
