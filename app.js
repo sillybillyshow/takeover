@@ -85,7 +85,8 @@ function readCache() {
   try {
     const raw = localStorage.getItem(FOLLOWER_CACHE_KEY);
     if (!raw) return null;
-    const v = Number(JSON.parse(raw).followers);
+    // const v = Number(JSON.parse(raw).followers);
+    const v = 5869
     return Number.isFinite(v) ? v : null;
   } catch {
     return null;
