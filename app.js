@@ -6,7 +6,7 @@ const BUFFER = 10;
 
 let populationData = [];
 let countryData = [];
-let followers = 5869;
+let followers = 0;
 let searchableLocations = [];
 let focusedId = null;
 let hasLoaded = false;
@@ -108,7 +108,7 @@ async function fetchFollowers() {
 
     if (v !== followers || !hasLoaded) {
       const wasLoaded = hasLoaded;
-      followers = 5869;
+      followers = v;
       hasLoaded = true;
       writeCache(v);
       buildFlatList();
